@@ -1,0 +1,59 @@
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>スーパービンゴ シミュレーター</title>
+        <link rel="stylesheet" href="sbsim.css" />
+        <script src="sbsim.js"></script>
+    </head>
+    <body>
+        <h1>スーパービンゴ シミュレーター</h1>
+        <table>
+            <tr>
+                <th>人数</th>
+                <td>
+                    <select id="numPlayer" onchange="onNumPlayerChanged()">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th>BET</th>
+                <td><select id="bet"></select></td>
+            </tr>
+            <tr>
+                <th colspan="2"><input id="chance" type="checkbox" checked="checked" />チャンスを使う</th>
+            </tr>
+            <tr>
+                <th><button onclick="onStart(false)">指定数回す</button></th>
+                <td><input id="times" type="text" size="8" value="1000" /></td>
+            </tr>
+            <tr>
+                <th colspan="2"><button onclick="onStart(true)">スーパービンゴが出るまで回す</button></th>
+            </tr>
+        </table>
+        <table class="result">
+            <tr><th>回数</th><td id="resultTimes">0</td></tr>
+            <tr><th>ビンゴ</th><td id ="bingo">0</td></tr>
+            <tr><th>スーパービンゴ</th><td id="sbingo">0</td></tr>
+            <tr><th>1位</th><td id="rank1">0</td></tr>
+            <tr><th>2位</th><td id="rank2">0</td></tr>
+            <tr><th>3位</th><td id="rank3">0</td></tr>
+            <tr><th>4位</th><td id="rank4">0</td></tr>
+            <tr><th>BET</th><td id="totalBet">0</td></tr>
+            <tr><th>獲得</th><td id="prise">0</td></tr>
+            <tr><th>所持金</th><td id="total">0</td></tr>
+            <tr><th>所持金(最小)</th><td id="totalMin">0</td></tr>
+            <tr><th>所持金(最大)</th><td id="totalMax">0</td></tr>
+        </table>
+        <a id="link"></a>
+        <table class="message">
+            <tr><td id="message"></td></tr>
+        </table>
+        <ul>
+            <li>できるだけ再現できるようにしていますが、正しさは保証できません。</li>
+            <li>チャンスは最初から3連続で使用します。</li>
+        </ul>
+    </body>
+</html>
