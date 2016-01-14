@@ -48,7 +48,7 @@ function onStart(waitSuperBingo) {
     Settings.times = getInputValue("times");
     Settings.numPlayer = getSelectListValue("numPlayer");
     Settings.bet = getSelectListValue("bet");
-    Settings.maxBet = Settings.bet * 10;
+    Settings.maxBet = Settings.betMap[Settings.numPlayer] * 10;
     Settings.waitSuperBingo = waitSuperBingo;
     Settings.useChance = getInputChecked("chance");
 
