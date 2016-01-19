@@ -694,9 +694,11 @@ Room.prototype.playRound = function (ball, rank, round) {
 
             if (player.incrementChance(round) == 3) {
                 var open = player.card.openChance();
-                if (open.bingo > 0 && player.rank < 0) {
-                    player.rank = rank;
-                    bingo = true;
+                if (open) {
+                    if (open.bingo > 0 && player.rank < 0) {
+                        player.rank = rank;
+                        bingo = true;
+                    }
                 }
             }
         }
