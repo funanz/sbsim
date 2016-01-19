@@ -77,10 +77,9 @@ function updateBetList(bet) {
 }
 
 function runSimulation(settings) {
-    var times = settings.times;
-    var result = new Result();
+    var result = new SimulationResult();
 
-    var mainLoop = function (interval) {
+    var mainLoop = function () {
         var room = new Room();
         room.numPlayer = settings.numPlayer;
         room.maxBet = settings.maxBet;
@@ -113,7 +112,7 @@ function runSimulation(settings) {
         if (settings.waitSuperBingo)
             done = result.superBingo > 0;
         else
-            done = result.times >= times;
+            done = result.times >= settings.times;
 
         if (done) {
             displayResultMessage(settings, result);
@@ -123,28 +122,29 @@ function runSimulation(settings) {
 
         return true;
     }
-    var interval = function () {
+
+    var intervalAction = function () {
         displayResult(result);
     }
 
-    timerLoop(mainLoop, interval);
+    timerLoop(mainLoop, intervalAction);
 }
 
-function timerLoop(mainLoop, interval) {
+function timerLoop(mainLoop, intervalAction) {
     var beginLoop = function () {
         for (var i = 0; i < 127; i++) {
             if (!mainLoop()) {
-                interval();
+                intervalAction();
                 return;
             }
         }
-        interval();
+        intervalAction();
         setTimeout(arguments.callee, 0);
     }
     beginLoop();
 }
 
-function Result() {
+function SimulationResult() {
     this.times = 0;
     this.bingo = 0;
     this.superBingo = 0;
