@@ -4,10 +4,11 @@ table.result {
 }
 table.result th {
     border: 1px #c0c0c0 solid;
+    text-align: center;
 }
 table.result td {
     border: 1px #c0c0c0 solid;
-    width: 100px;
+    width: 120px;
 }
 table.message {
     border-collapse: collapse;
@@ -22,5 +23,8 @@ button {
     width: 100%;
 }
 select {
-    width: 80px;
+    width: 100%;
+}
+input {
+    width: 100%;
 }

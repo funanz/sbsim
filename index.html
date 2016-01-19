@@ -23,7 +23,28 @@
                 <td><select id="bet"></select></td>
             </tr>
             <tr>
-                <th colspan="2"><input id="chance" type="checkbox" checked="checked" />チャンスを使う</th>
+                <th>チャンス(自分)</th>
+                <td>
+                    <select id="chanceMode">
+                        <option value="0">使わない</option>
+                        <option value="1">最短で使う</option>
+                        <option value="2">最後に使う</option>
+                        <option value="3" selected>リーチで使う</option>
+                        <option value="4">スーパーリーチで使う</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <th>チャンス(他人)</th>
+                <td>
+                    <select id="chanceModeOthers">
+                        <option value="0">使わない</option>
+                        <option value="1">最短で使う</option>
+                        <option value="2">最後に使う</option>
+                        <option value="3" selected>リーチで使う</option>
+                        <option value="4">スーパーリーチで使う</option>
+                    </select>
+                </td>
             </tr>
             <tr>
                 <th><button onclick="onStart(false)">指定数回す</button></th>
@@ -35,12 +56,13 @@
         </table>
         <table class="result">
             <tr><th>回数</th><td id="resultTimes">0</td></tr>
-            <tr><th>ビンゴ</th><td id ="bingo">0</td></tr>
-            <tr><th>スーパービンゴ</th><td id="sbingo">0</td></tr>
-            <tr><th>1位</th><td id="rank1">0</td></tr>
-            <tr><th>2位</th><td id="rank2">0</td></tr>
-            <tr><th>3位</th><td id="rank3">0</td></tr>
-            <tr><th>4位</th><td id="rank4">0</td></tr>
+            <tr><th>ビンゴ</th><td id ="bingo">0</td><td id="bingoPer">0%</td></tr>
+            <tr><th>スーパービンゴ</th><td id="superBingo">0</td><td id="superBingoPer">0%</td></tr>
+            <tr><th>1位</th><td id="rank1">0</td><td id="rank1Per">0%</td></tr>
+            <tr><th>2位</th><td id="rank2">0</td><td id="rank2Per">0%</td></tr>
+            <tr><th>3位</th><td id="rank3">0</td><td id="rank3Per">0%</td></tr>
+            <tr><th>4位</th><td id="rank4">0</td><td id="rank4Per">0%</td></tr>
+            <tr><th>圏外</th><td id="norank">0</td><td id="norankPer">0%</td></tr>
             <tr><th>BET</th><td id="totalBet">0</td></tr>
             <tr><th>獲得</th><td id="prise">0</td></tr>
             <tr><th>所持金</th><td id="total">0</td></tr>
@@ -53,7 +75,8 @@
         </table>
         <ul>
             <li>できるだけ再現できるようにしていますが、正しさは保証できません。</li>
-            <li>チャンスは最初から3連続で使用します。</li>
+            <li>リーチ・スーパーリーチでチャンスを使う条件が揃わない場合は、最後に使います。</li>
+            <li>IE9では動作しません。</li>
         </ul>
     </body>
 </html>

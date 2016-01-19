@@ -21,6 +21,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+var ChanceMode = {};
+ChanceMode.NONE = 0;
+ChanceMode.FAST = 1;
+ChanceMode.LAST = 2;
+ChanceMode.REACH = 3;
+ChanceMode.SUPER_REACH = 4;
+
 var Settings = {};
 Settings.numPlayer = 5;
 Settings.bet = 100;
@@ -28,8 +35,10 @@ Settings.maxBet = 1000;
 Settings.betMap = { 5: 100, 10: 1000, 20: 10000 };
 Settings.times = 1000;
 Settings.waitSuperBingo = false;
-Settings.useChance = true;
+Settings.chanceMode = ChanceMode.REACH;
+Settings.chanceModeOthers = ChanceMode.REACH;
 Settings.running = false;
+Settings.debugVerifyCellCount = false;
 
 window.onload = function () {
     onNumPlayerChanged();
@@ -50,9 +59,10 @@ function onStart(waitSuperBingo) {
     Settings.bet = getSelectListValue("bet");
     Settings.maxBet = Settings.betMap[Settings.numPlayer] * 10;
     Settings.waitSuperBingo = waitSuperBingo;
-    Settings.useChance = getInputChecked("chance");
+    Settings.chanceMode = getSelectListValue("chanceMode");
+    Settings.chanceModeOthers = getSelectListValue("chanceModeOthers");
 
-    run(Settings);
+    runSimulation(Settings);
 }
 
 function updateBetList(bet) {
@@ -66,7 +76,7 @@ function updateBetList(bet) {
     }
 }
 
-function run(settings) {
+function runSimulation(settings) {
     var times = settings.times;
     var result = new Result();
 
@@ -75,13 +85,14 @@ function run(settings) {
         room.numPlayer = settings.numPlayer;
         room.maxBet = settings.maxBet;
         room.bet = settings.bet;
-        room.useChance = settings.useChance;
+        room.chanceMode = settings.chanceMode;
+        room.chanceModeOthers = settings.chanceModeOthers;
         room.play();
 
-        var player = room.players[0];
-        if (player.card.isSuperBingo)
-            result.sbingo++;
-        if (player.card.isBingo)
+        var player = room.getPlayer();
+        if (player.card.superBingo > 0)
+            result.superBingo++;
+        if (player.card.bingo > 0)
             result.bingo++;
 
         switch (player.rank) {
@@ -98,18 +109,19 @@ function run(settings) {
         result.totalMin = Math.min(result.total, result.totalMin);
         result.totalMax = Math.max(result.total, result.totalMax);
 
-        var continueLoop = false;
+        var done = true;
         if (settings.waitSuperBingo)
-            continueLoop = result.sbingo <= 0;
+            done = result.superBingo > 0;
         else
-            continueLoop = result.times < times;
+            done = result.times >= times;
 
-        if (!continueLoop) {
+        if (done) {
             displayResultMessage(settings, result);
             settings.running = false;
+            return false;
         }
 
-        return continueLoop;
+        return true;
     }
     var interval = function () {
         displayResult(result);
@@ -119,7 +131,7 @@ function run(settings) {
 }
 
 function timerLoop(mainLoop, interval) {
-    (function () {
+    var beginLoop = function () {
         for (var i = 0; i < 127; i++) {
             if (!mainLoop()) {
                 interval();
@@ -128,13 +140,14 @@ function timerLoop(mainLoop, interval) {
         }
         interval();
         setTimeout(arguments.callee, 0);
-    })();
+    }
+    beginLoop();
 }
 
 function Result() {
     this.times = 0;
     this.bingo = 0;
-    this.sbingo = 0;
+    this.superBingo = 0;
     this.rank1 = 0;
     this.rank2 = 0;
     this.rank3 = 0;
@@ -147,23 +160,35 @@ function Result() {
 }
 
 function displayResult(result) {
+    var norank = result.bingo -
+        result.rank1 - result.rank2 - result.rank3 - result.rank4;
+
     displayValue("resultTimes", result.times);
     displayValue("bingo", result.bingo);
-    displayValue("sbingo", result.sbingo);
+    displayValue("superBingo", result.superBingo);
     displayValue("rank1", result.rank1);
     displayValue("rank2", result.rank2);
     displayValue("rank3", result.rank3);
     displayValue("rank4", result.rank4);
+    displayValue("norank", norank);
     displayValue("totalBet", result.bet);
     displayValue("prise", result.prise);
     displayValue("total", result.total);
     displayValue("totalMin", result.totalMin);
     displayValue("totalMax", result.totalMax);
+
+    displayValuePer("bingoPer", result.bingo / result.times);
+    displayValuePer("superBingoPer", result.superBingo / result.times);
+    displayValuePer("rank1Per", result.rank1 / result.bingo);
+    displayValuePer("rank2Per", result.rank2 / result.bingo);
+    displayValuePer("rank3Per", result.rank3 / result.bingo);
+    displayValuePer("rank4Per", result.rank4 / result.bingo);
+    displayValuePer("norankPer", norank / result.bingo);
 }
 
 function displayResultMessage(settings, result) {
     var msg = result.times.toLocaleString() + "回中、"
-        + result.sbingo.toLocaleString() + "回のスーパービンゴ！\n";
+    msg += result.superBingo.toLocaleString() + "回のスーパービンゴ！\n";
     msg += "ビンゴ：" + result.bingo.toLocaleString() + "\n";
     msg += "人数：" + settings.numPlayer.toLocaleString() + "\n";
     msg += "BET：" + result.bet.toLocaleString() + "\n";
@@ -179,13 +204,13 @@ function displayResultMessage(settings, result) {
 
 function displayLink(id, text, url) {
     var elem = document.getElementById(id);
-    elem.innerHTML = text;
+    elem.innerHTML = toSafeText(text);
     elem.href = url;
 }
 
 function displayString(id, s) {
     var elem = document.getElementById(id);
-    elem.innerHTML = s.replace(/\r?\n/g, "<br/>");
+    elem.innerHTML = toSafeText(s);
 }
 
 function displayValue(id, value) {
@@ -193,20 +218,38 @@ function displayValue(id, value) {
     elem.innerHTML = value.toLocaleString();
 }
 
+function displayValuePer(id, fvalue) {
+    var per = fvalue * 100;
+    displayString(id, per.toFixed(4) + "%");
+}
+
 function getSelectListValue(id) {
     var select = document.getElementById(id);
     var i = select.selectedIndex;
-    return parseInt(select.options[i].value);
+    var n = parseInt(select.options[i].value);
+    return isNaN(n) ? 0 : n;
 }
 
 function getInputValue(id) {
     var input = document.getElementById(id);
-    return parseInt(input.value);
+    var n = parseInt(input.value);
+    return isNaN(n) ? 0 : n;
 }
 
-function getInputChecked(id) {
-    var input = document.getElementById(id);
-    return input.checked;
+function toSafeText(s) {
+    var escapeEntity = s.replace(/[&<>"]/g, function (m) {
+        return escapeEntityMap[m];
+    });
+    var convertCrLf = escapeEntity.replace(/\r?\n/g, "<br/>");
+
+    return convertCrLf;
+}
+
+var escapeEntityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
 }
 
 var Random = {};
@@ -229,16 +272,29 @@ Random.next2 = function (min, max) {
 }
 
 Random.shuffle = function (list, swap) {
+    if (arguments.length == 1)
+        return Random.shuffle1(list);
+    else if (arguments.length == 2)
+        return Random.shuffle2(list, swap);
+    else
+        throw { name: "ArgumentException" };
+}
+
+Random.shuffle1 = function (list) {
     var size = list.length;
     for (var i = 0; i < size; i++) {
         var r = Random.next(i, size);
-        if (swap) {
-            swap(list[i], list[r]);
-        } else {
-            var temp = list[i];
-            list[i] = list[r];
-            list[r] = temp;
-        }
+        var temp = list[i];
+        list[i] = list[r];
+        list[r] = temp;
+    }
+}
+
+Random.shuffle2 = function (list, swap) {
+    var size = list.length;
+    for (var i = 0; i < size; i++) {
+        var r = Random.next(i, size);
+        swap(list[i], list[r]);
     }
 }
 
@@ -253,6 +309,8 @@ function BingoResult() {
     this.isOpen = false;
     this.bingo = 0;
     this.superBingo = 0;
+    this.reach = 0;
+    this.superReach = 0;
 }
 
 var BingoPattern = {};
@@ -272,7 +330,7 @@ BingoPattern.patterns = [
     [4, 8, 12, 16, 20],
 ]
 
-BingoPattern.makeTable = function (patterns) {
+BingoPattern.makeDependTable = function (patterns) {
     var table = [];
     for (var i = 0; i < 25; i++) {
         var list = [];
@@ -286,33 +344,83 @@ BingoPattern.makeTable = function (patterns) {
     return table;
 }
 
-BingoPattern.table = BingoPattern.makeTable(BingoPattern.patterns);
+BingoPattern.dependTable = BingoPattern.makeDependTable(BingoPattern.patterns);
 
-BingoPattern.match = function (cells, index) {
-    var result = new BingoResult();
-    if (index < 0) return result;
-    if (index >= this.table.length) return result;
+BingoPattern.count = function (cells, patterns, countAction, countActionArgs) {
+    var count = {};
+    count.result = new BingoResult();
+    count.open = 0;
+    count.diamond = 0;
+    count.args = countActionArgs;
 
-    var patterns = this.table[index];
     for (var i = 0; i < patterns.length; i++) {
         var pattern = patterns[i];
 
-        var bingo = true;
-        var sbingo = true;
-
+        count.open = 0;
+        count.diamond = 0;
         for (var j = 0; j < pattern.length; j++) {
             var index = pattern[j];
-            bingo = bingo && cells[index].isOpen;
-            sbingo = sbingo && cells[index].isDiamond;
+            if (cells[index].isOpen) {
+                count.open++;
+                if (cells[index].isDiamond)
+                    count.diamond++;
+            }
         }
 
-        if (sbingo)
-            result.superBingo++;
-        else if (bingo)
-            result.bingo++;
+        countAction(count);
     }
 
-    return result;
+    return count.result;
+}
+
+BingoPattern.countAll = function (cells) {
+    return this.count(cells, this.patterns, this.countActionAll)
+}
+
+BingoPattern.countActionAll = function (count) {
+    if (count.open == 5) {
+        if (count.diamond == 5)
+            count.result.superBingo++;
+        else
+            count.result.bingo++;
+    } else if (count.open == 4) {
+        if (count.diamond == 4)
+            count.result.superReach++;
+        else
+            count.result.reach++;
+    }
+}
+
+BingoPattern.countDiffsFromOpenCell = function (cells, cellIndex) {
+    if (cellIndex < 0) throw { name: "ArgumentException" };
+    if (cellIndex >= cells.length) throw { name: "ArgumentException" };
+    if (cellIndex >= this.dependTable.length) throw { name: "ArgumentException" };
+
+    var openCell = cells[cellIndex];
+    var patterns = this.dependTable[cellIndex];
+    return this.count(cells, patterns, this.countActionDiffsFromOpenCell, openCell);
+}
+
+BingoPattern.countActionDiffsFromOpenCell = function (count) {
+    var openCell = count.args;
+
+    if (count.open == 5) {
+        if (count.diamond == 5) {
+            count.result.superBingo++;
+            count.result.superReach--;
+        } else {
+            count.result.bingo++;
+            if (count.diamond == 4 && !openCell.isDiamond)
+                count.result.superReach--;
+            else
+                count.result.reach--;
+        }
+    } else if (count.open == 4) {
+        if (count.diamond == 4)
+            count.result.superReach++;
+        else
+            count.result.reach++;
+    }
 }
 
 function Ball(number, color) {
@@ -330,29 +438,43 @@ function BallServer() {
 }
 
 BallServer.prototype.pull = function (num) {
-    if (arguments.length == 0) {
-        return this.balls.pop();
-    } else if (arguments.length == 1) {
-        var result = [];
-        for (var i = 0; i < num; i++)
-            result.push(this.balls.pop());
-        return result;
-    } else {
+    if (arguments.length == 0)
+        return this.pull0();
+    else if (arguments.length == 1)
+        return this.pull1(num);
+    else
         throw { name: "ArgumentException" };
+}
+
+BallServer.prototype.pull0 = function () {
+    if (this.balls.length <= 0) return null;
+
+    return this.balls.pop();
+}
+
+BallServer.prototype.pull1 = function (num) {
+    var result = [];
+    for (var i = 0; i < num; i++) {
+        var ball = this.pull0();
+        if (!ball)
+            break;
+        result.push(ball);
     }
+    return result;
 }
 
 function Card() {
-    var row = 5;
-    var column = 5;
-
+    this.row = 5;
+    this.column = 5;
     this.cells = [];
-    this.isBingo = false;
-    this.isSuperBingo = false;
+    this.bingo = false;
+    this.reach = false;
+    this.superBingo = false;
+    this.superReach = false;
 
-    var size = row * column;
+    var size = this.row * this.column;
     for (var i = 0; i < size; i++) {
-        var color = i % column;
+        var color = i % this.column;
         this.cells.push(new Cell(i + 1, color));
     }
 
@@ -373,10 +495,12 @@ Card.prototype.open = function (ball) {
         if (!cell.isOpen && cell.number == ball.number) {
             cell.isOpen = true;
             cell.isDiamond = cell.color == ball.color;
-            return this.patternMatch(this.cells, i);
+
+            return this.updateCellCount(i);
         }
     }
-    return new BingoResult();
+
+    return null;
 }
 
 Card.prototype.openChance = function () {
@@ -390,42 +514,142 @@ Card.prototype.openChance = function () {
         var i = available[r];
         this.cells[i].isOpen = true;
         this.cells[i].isDiamond = true;
-        return this.patternMatch(this.cells, i);
+
+        return this.updateCellCount(i);
     }
 
-    return new BingoResult();
+    return null;
 }
 
-Card.prototype.patternMatch = function (cells, index) {
-    var result = BingoPattern.match(cells, index);
-    if (result.bingo > 0)
-        this.isBingo = true;
-    if (result.superBingo > 0)
-        this.isSuperBingo = true;
+Card.prototype.updateCellCount = function (cellIndex) {
+    var result = BingoPattern.countDiffsFromOpenCell(this.cells, cellIndex);
 
-    result.isOpen = true;
+    this.bingo += result.bingo;
+    this.reach += result.reach;
+    this.superBingo += result.superBingo;
+    this.superReach += result.superReach;
+
+    if (Settings.debugVerifyCellCount)
+        this.verifyCellCount();
+
     return result;
 }
 
-function Player(bet) {
+Card.prototype.verifyCellCount = function () {
+    var all = BingoPattern.countAll(this.cells);
+
+    var ok = true;
+    if (this.bingo != all.bingo) ok = false;
+    if (this.reach != all.reach) ok = false;
+    if (this.superBingo != all.superBingo) ok = false;
+    if (this.superReach != all.superReach) ok = false;
+
+    if (ok) return;
+
+    console.log(this.toString());
+    console.log("diff: bingo=%d reach=%d sbingo=%d sreach=%d",
+        this.bingo, this.reach, this.superBingo, this.superReach);
+    console.log("all:  bingo=%d reach=%d sbingo=%d sreach=%d",
+        all.bingo, all.reach, all.superBingo, all.superReach);
+    console.log("---");
+
+    throw { name: "TestException" };
+}
+
+Card.prototype.toString = function () {
+    var result = "";
+    for (i = 0; i < this.row; i++) {
+        var s = "|";
+        for (j = 0; j < this.column; j++) {
+            var cell = this.cells[i * this.row + j];
+            s += cell.isOpen ? "o" : " ";
+            s += cell.isDiamond ? "*" : " ";
+            s += "|";
+        }
+        result += s + "\n";
+    }
+    return result;
+}
+
+function Player() {
     this.card = new Card();
-    this.bet = bet;
+    this.bet = 100;
     this.rank = -1;
     this.chance = 0;
 }
+
+Player.prototype.setChanceMode = function (chanceMode) {
+    var action = this.chanceModeMap[chanceMode];
+    if (!action)
+        throw { name: "NotImplementedException" };
+    this.canIncrementChance = action;
+}
+
+Player.prototype.incrementChance = function (round) {
+    if (this.canIncrementChance(round))
+        this.chance++;
+    return this.chance;
+}
+
+Player.prototype.canIncrementChanceNone = function (round) {
+    return false;
+}
+
+Player.prototype.canIncrementChanceFast = function (round) {
+    return true;
+}
+
+Player.prototype.canIncrementChanceLast = function (round) {
+    if (this.chance < 2) return true;
+    if (round == 5) return true;
+    return false;
+}
+
+Player.prototype.canIncrementChanceReach = function (round) {
+    if (this.chance < 2) return true;
+    if (round == 5) return true;
+    return this.card.reach > 0 || this.card.superReach > 0;
+}
+
+Player.prototype.canIncrementChanceSuperReach = function (round) {
+    if (this.chance < 2) return true;
+    if (round == 5) return true;
+    return this.card.superReach > 0;
+}
+
+Player.prototype.canIncrementChance =
+    Player.prototype.canIncrementChanceNone;
+
+Player.prototype.chanceModeMap = {};
+Player.prototype.chanceModeMap[ChanceMode.NONE] =
+    Player.prototype.canIncrementChanceNone;
+Player.prototype.chanceModeMap[ChanceMode.FAST] =
+    Player.prototype.canIncrementChanceFast;
+Player.prototype.chanceModeMap[ChanceMode.LAST] =
+    Player.prototype.canIncrementChanceLast;
+Player.prototype.chanceModeMap[ChanceMode.REACH] =
+    Player.prototype.canIncrementChanceReach;
+Player.prototype.chanceModeMap[ChanceMode.SUPER_REACH] =
+    Player.prototype.canIncrementChanceSuperReach;
 
 function Room() {
     this.players = [];
     this.numPlayer = 5;
     this.bet = 100;
     this.maxBet = 1000;
-    this.useChance = true;
+    this.chanceMode = ChanceMode.REACH;
+    this.chanceModeOthers = ChanceMode.REACH;
 }
 
 Room.prototype.play = function () {
     this.players = [];
-    for (var i = 0; i < this.numPlayer; i++)
-        this.players.push(new Player(this.bet));
+    for (var i = 0; i < this.numPlayer; i++) {
+        var player = new Player();
+        player.bet = this.bet;
+        player.setChanceMode(this.chanceModeOthers);
+        this.players.push(player);
+    }
+    this.players[0].setChanceMode(this.chanceMode);
 
     var balls = new BallServer();
     this.freeBallRound(balls);
@@ -433,7 +657,7 @@ Room.prototype.play = function () {
     var rank = 1;
     for (var i = 0; i < 5; i++) {
         var ball = balls.pull();
-        var bingo = this.playRound(ball, rank);
+        var bingo = this.playRound(ball, rank, i + 1);
         if (bingo) rank++;
     }
 }
@@ -450,29 +674,27 @@ Room.prototype.freeBallRound = function (balls) {
         for (var j = 0; j < num; j++)
             player.card.open(freeBalls[j]);
 
-        if (player.card.isBingo)
+        if (player.card.bingo > 0)
             player.rank = 1;
     }
 }
 
-Room.prototype.playRound = function (ball, rank) {
+Room.prototype.playRound = function (ball, rank, round) {
     var bingo = false;
 
     for (var i = 0; i < this.players.length; i++) {
         var player = this.players[i];
 
-        var result = player.card.open(ball);
-        if (result.isOpen) {
-            if (result.bingo > 0 && player.rank < 0) {
+        var open = player.card.open(ball);
+        if (open) {
+            if (open.bingo > 0 && player.rank < 0) {
                 player.rank = rank;
                 bingo = true;
             }
 
-            if (this.useChance)
-                player.chance++;
-            if (player.chance == 3) {
-                var result = player.card.openChance();
-                if (result.bingo > 0 && player.rank < 0) {
+            if (player.incrementChance(round) == 3) {
+                var open = player.card.openChance();
+                if (open.bingo > 0 && player.rank < 0) {
                     player.rank = rank;
                     bingo = true;
                 }
@@ -483,10 +705,14 @@ Room.prototype.playRound = function (ball, rank) {
     return bingo;
 }
 
+Room.prototype.getPlayer = function () {
+    return this.players[0];
+}
+
 Room.prototype.payment = function (player) {
     var pay = 0;
 
-    if (player.card.isSuperBingo) {
+    if (player.card.superBingo > 0) {
         var scale = (player.bet < this.maxBet) ? 700 : 777.77777777777777;
         pay += Math.floor(player.bet * scale);
     }
