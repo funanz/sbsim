@@ -268,7 +268,7 @@ Random.next1 = function (max) {
 }
 
 Random.next2 = function (min, max) {
-    return Random.next(max - min) + min;
+    return Random.next1(max - min) + min;
 }
 
 Random.shuffle = function (list, swap) {
