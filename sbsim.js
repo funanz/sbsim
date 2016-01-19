@@ -467,10 +467,10 @@ function Card() {
     this.row = 5;
     this.column = 5;
     this.cells = [];
-    this.bingo = false;
-    this.reach = false;
-    this.superBingo = false;
-    this.superReach = false;
+    this.bingo = 0;
+    this.reach = 0;
+    this.superBingo = 0;
+    this.superReach = 0;
 
     var size = this.row * this.column;
     for (var i = 0; i < size; i++) {
