@@ -688,19 +688,26 @@ Room.prototype.playRound = function (ball, rank, round) {
     for (var i = 0; i < this.players.length; i++) {
         var player = this.players[i];
 
+        if (player.card.superBingo > 0) continue;
+        if (player.card.bingo > 0) continue;
+
         var open = player.card.open(ball);
         if (open) {
-            if (open.bingo > 0 && player.rank < 0) {
+            if (open.superBingo > 0) continue;
+            if (open.bingo > 0) {
                 player.rank = rank;
                 bingo = true;
+                continue;
             }
 
             if (player.incrementChance(round) == 3) {
                 var open = player.card.openChance();
                 if (open) {
-                    if (open.bingo > 0 && player.rank < 0) {
+                    if (open.superBingo > 0) continue;
+                    if (open.bingo > 0) {
                         player.rank = rank;
                         bingo = true;
+                        continue;
                     }
                 }
             }
