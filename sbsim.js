@@ -298,18 +298,17 @@ Random.shuffle2 = function (list, swap) {
     }
 }
 
-function Cell(number, color, open, diamond) {
+function Cell(number, color, isOpen, isDiamond) {
     this.number = number;
     this.color = color;
-    this.isOpen = open;
-    this.isDiamond = diamond;
+    this.isOpen = isOpen;
+    this.isDiamond = isDiamond;
 }
 
 function BingoResult() {
-    this.isOpen = false;
     this.bingo = 0;
-    this.superBingo = 0;
     this.reach = 0;
+    this.superBingo = 0;
     this.superReach = 0;
 }
 
@@ -715,18 +714,18 @@ Room.prototype.payment = function (player) {
     var pay = 0;
 
     if (player.card.superBingo > 0) {
-        var scale = (player.bet < this.maxBet) ? 700 : 777.77777777777777;
-        pay += Math.floor(player.bet * scale);
+        if (player.bet < this.maxBet)
+            pay += player.bet * 700;
+        else
+            pay += Math.floor(player.bet * 777.77777777777777);
     }
 
-    if (player.rank == 1)
-        pay += player.bet * 10;
-    else if (player.rank == 2)
-        pay += player.bet * 5;
-    else if (player.rank == 3)
-        pay += player.bet * 3;
-    else if (player.rank == 4)
-        pay += player.bet * 2;
+    switch (player.rank) {
+        case 1: pay += player.bet * 10; break;
+        case 2: pay += player.bet * 5; break;
+        case 3: pay += player.bet * 3; break;
+        case 4: pay += player.bet * 2; break;
+    }
 
     return pay;
 }
