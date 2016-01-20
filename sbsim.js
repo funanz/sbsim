@@ -177,13 +177,13 @@ function displayResult(result) {
     displayValue("totalMin", result.totalMin);
     displayValue("totalMax", result.totalMax);
 
-    displayValuePer("bingoPer", result.bingo / result.times);
-    displayValuePer("superBingoPer", result.superBingo / result.times);
-    displayValuePer("rank1Per", result.rank1 / result.bingo);
-    displayValuePer("rank2Per", result.rank2 / result.bingo);
-    displayValuePer("rank3Per", result.rank3 / result.bingo);
-    displayValuePer("rank4Per", result.rank4 / result.bingo);
-    displayValuePer("norankPer", norank / result.bingo);
+    displayValuePer("bingoPer", result.bingo, result.times);
+    displayValuePer("superBingoPer", result.superBingo, result.times);
+    displayValuePer("rank1Per", result.rank1, result.bingo);
+    displayValuePer("rank2Per", result.rank2, result.bingo);
+    displayValuePer("rank3Per", result.rank3, result.bingo);
+    displayValuePer("rank4Per", result.rank4, result.bingo);
+    displayValuePer("norankPer", norank, result.bingo);
 }
 
 function displayResultMessage(settings, result) {
@@ -218,9 +218,13 @@ function displayValue(id, value) {
     elem.innerHTML = value.toLocaleString();
 }
 
-function displayValuePer(id, fvalue) {
-    var per = fvalue * 100;
-    displayString(id, per.toFixed(4) + "%");
+function displayValuePer(id, num, all) {
+    if (all == 0) {
+        displayString(id, "-");
+    } else {
+        var per = num * 100 / all;
+        displayString(id, per.toFixed(4) + "%");
+    }
 }
 
 function getSelectListValue(id) {
