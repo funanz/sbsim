@@ -27,6 +27,7 @@ Settings.running = false;
 Settings.debugVerifyCellCount = false;
 
 window.onload = function () {
+    Random.initialize();
     onNumPlayerChanged();
 }
 
@@ -280,6 +281,14 @@ function timerLoop(mainLoop, thisObject, slice, interval) {
 }
 
 var Random = {};
+Random.mt = new MT19937ar();
+
+Random.initialize = function () {
+    var keys = [];
+    for (var i = 0; i < 128; i++)
+        keys.push((Math.random() * 0x80000000) & 0xffffffff);
+    Random.mt.init_by_array(keys);
+}
 
 Random.next = function (min, max) {
     if (arguments.length == 1)
@@ -291,7 +300,7 @@ Random.next = function (min, max) {
 }
 
 Random.next1 = function (max) {
-    return Math.floor(Math.random() * max);
+    return Random.mt.genrand_int32() % max;
 }
 
 Random.next2 = function (min, max) {
