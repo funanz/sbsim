@@ -54,6 +54,7 @@ function MT19937ar() {
 
     this.mt = new Array(this.N); /* the array for the state vector  */
     this.mti = this.N+1; /* mti==N+1 means mt[N] is not initialized */
+    this.mag01 = [0x0, this.MATRIX_A];
 }
 
 MT19937ar.prototype.mul32 = function (a, b) {
@@ -125,12 +126,11 @@ MT19937ar.prototype.genrand_int32 = function () {
     var mti = this.mti;
     var N = this.N;
     var M = this.M;
-    var MATRIX_A = this.MATRIX_A;
     var UPPER_MASK = this.UPPER_MASK;
     var LOWER_MASK = this.LOWER_MASK;
 
     var y;
-    var mag01=[0x0, MATRIX_A];
+    var mag01=this.mag01;
     /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
     if (mti >= N) { /* generate N words at one time */
