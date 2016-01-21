@@ -103,7 +103,7 @@ function runSimulation(settings) {
 
         result.times++;
         result.bet += player.bet;
-        result.prise += room.payment(player);
+        result.prize += room.payment(player);
         result.total += room.payment(player) - player.bet;
         result.totalMin = Math.min(result.total, result.totalMin);
         result.totalMax = Math.max(result.total, result.totalMax);
@@ -153,7 +153,7 @@ function SimulationResult() {
     this.rank3 = 0;
     this.rank4 = 0;
     this.bet = 0;
-    this.prise = 0;
+    this.prize = 0;
     this.total = 0;
     this.totalMin = Number.MAX_VALUE;
     this.totalMax = Number.MIN_VALUE;
@@ -172,7 +172,7 @@ function displayResult(result) {
     displayValue("rank4", result.rank4);
     displayValue("norank", norank);
     displayValue("totalBet", result.bet);
-    displayValue("prise", result.prise);
+    displayValue("prize", result.prize);
     displayValue("total", result.total);
     displayValue("totalMin", result.totalMin);
     displayValue("totalMax", result.totalMax);
@@ -192,7 +192,7 @@ function displayResultMessage(settings, result) {
     msg += "ビンゴ：" + result.bingo.toLocaleString() + "\n";
     msg += "人数：" + settings.numPlayer.toLocaleString() + "\n";
     msg += "BET：" + result.bet.toLocaleString() + "\n";
-    msg += "獲得：" + result.prise.toLocaleString() + "\n";
+    msg += "獲得：" + result.prize.toLocaleString() + "\n";
     msg += "合計：" + result.total.toLocaleString() + "\n";
     msg += window.location.href;
 
@@ -218,11 +218,11 @@ function displayValue(id, value) {
     elem.innerHTML = value.toLocaleString();
 }
 
-function displayValuePer(id, num, all) {
-    if (all == 0) {
+function displayValuePer(id, num, numAll) {
+    if (numAll == 0) {
         displayString(id, "-");
     } else {
-        var per = num * 100 / all;
+        var per = num * 100 / numAll;
         displayString(id, per.toFixed(4) + "%");
     }
 }
