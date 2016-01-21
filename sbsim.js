@@ -21,22 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-var ChanceMode = {};
-ChanceMode.NONE = 0;
-ChanceMode.FAST = 1;
-ChanceMode.LAST = 2;
-ChanceMode.REACH = 3;
-ChanceMode.SUPER_REACH = 4;
-
 var Settings = {};
-Settings.numPlayer = 5;
-Settings.bet = 100;
-Settings.maxBet = 1000;
 Settings.betMap = { 5: 100, 10: 1000, 20: 10000 };
-Settings.times = 1000;
-Settings.waitSuperBingo = false;
-Settings.chanceMode = ChanceMode.REACH;
-Settings.chanceModeOthers = ChanceMode.REACH;
 Settings.running = false;
 Settings.debugVerifyCellCount = false;
 
@@ -54,15 +40,23 @@ function onStart(waitSuperBingo) {
     if (Settings.running) return;
     Settings.running = true;
 
-    Settings.times = getInputValue("times");
-    Settings.numPlayer = getSelectListValue("numPlayer");
-    Settings.bet = getSelectListValue("bet");
-    Settings.maxBet = Settings.betMap[Settings.numPlayer] * 10;
-    Settings.waitSuperBingo = waitSuperBingo;
-    Settings.chanceMode = getSelectListValue("chanceMode");
-    Settings.chanceModeOthers = getSelectListValue("chanceModeOthers");
+    var sim = new BingoSimulator();
+    sim.times = getInputValue("times");
+    sim.numPlayer = getSelectListValue("numPlayer");
+    sim.bet = getSelectListValue("bet");
+    sim.maxBet = Settings.betMap[sim.numPlayer] * 10;
+    sim.waitSuperBingo = waitSuperBingo;
+    sim.chanceMode = getSelectListValue("chanceMode");
+    sim.chanceModeOthers = getSelectListValue("chanceModeOthers");
+    sim.reportAction = function (sim) {
+        displayResult(sim);
+    }
+    sim.finishAction = function (sim) {
+        displayResultMessage(sim);
+        Settings.running = false;
+    }
 
-    runSimulation(Settings);
+    sim.run();
 }
 
 function updateBetList(bet) {
@@ -76,90 +70,9 @@ function updateBetList(bet) {
     }
 }
 
-function runSimulation(settings) {
-    var result = new SimulationResult();
+function displayResult(sim) {
+    var result = sim.result;
 
-    var mainLoop = function () {
-        var room = new Room();
-        room.numPlayer = settings.numPlayer;
-        room.maxBet = settings.maxBet;
-        room.bet = settings.bet;
-        room.chanceMode = settings.chanceMode;
-        room.chanceModeOthers = settings.chanceModeOthers;
-        room.play();
-
-        var player = room.getPlayer();
-        if (player.card.superBingo > 0)
-            result.superBingo++;
-        if (player.card.bingo > 0)
-            result.bingo++;
-
-        switch (player.rank) {
-            case 1: result.rank1++; break;
-            case 2: result.rank2++; break;
-            case 3: result.rank3++; break;
-            case 4: result.rank4++; break;
-        }
-
-        result.times++;
-        result.bet += player.bet;
-        result.prize += room.payment(player);
-        result.total += room.payment(player) - player.bet;
-        result.totalMin = Math.min(result.total, result.totalMin);
-        result.totalMax = Math.max(result.total, result.totalMax);
-
-        var done = true;
-        if (settings.waitSuperBingo)
-            done = result.superBingo > 0;
-        else
-            done = result.times >= settings.times;
-
-        if (done) {
-            displayResultMessage(settings, result);
-            settings.running = false;
-            return false;
-        }
-
-        return true;
-    }
-
-    var intervalAction = function () {
-        displayResult(result);
-    }
-
-    timerLoop(mainLoop, intervalAction);
-}
-
-function timerLoop(mainLoop, intervalAction) {
-    var beginLoop = function () {
-        for (var i = 0; i < 127; i++) {
-            if (!mainLoop()) {
-                intervalAction();
-                return;
-            }
-        }
-        intervalAction();
-        setTimeout(arguments.callee, 0);
-    }
-    beginLoop();
-}
-
-function SimulationResult() {
-    this.times = 0;
-    this.bingo = 0;
-    this.superBingo = 0;
-    this.rank1 = 0;
-    this.rank2 = 0;
-    this.rank3 = 0;
-    this.rank4 = 0;
-    this.bet = 0;
-    this.prize = 0;
-    this.total = 0;
-    this.totalMin = Number.MAX_VALUE;
-    this.totalMax = Number.MIN_VALUE;
-}
-
-function displayResult(result) {
     var norank = result.bingo -
         result.rank1 - result.rank2 - result.rank3 - result.rank4;
 
@@ -186,11 +99,13 @@ function displayResult(result) {
     displayValuePer("norankPer", norank, result.bingo);
 }
 
-function displayResultMessage(settings, result) {
+function displayResultMessage(sim) {
+    var result = sim.result;
+
     var msg = result.times.toLocaleString() + "回中、"
     msg += result.superBingo.toLocaleString() + "回のスーパービンゴ！\n";
     msg += "ビンゴ：" + result.bingo.toLocaleString() + "\n";
-    msg += "人数：" + settings.numPlayer.toLocaleString() + "\n";
+    msg += "人数：" + sim.numPlayer.toLocaleString() + "\n";
     msg += "BET：" + result.bet.toLocaleString() + "\n";
     msg += "獲得：" + result.prize.toLocaleString() + "\n";
     msg += "合計：" + result.total.toLocaleString() + "\n";
@@ -254,6 +169,114 @@ var escapeEntityMap = {
     "<": "&lt;",
     ">": "&gt;",
     "\"": "&quot;",
+}
+
+var ChanceMode = {};
+ChanceMode.NONE = 0;
+ChanceMode.FAST = 1;
+ChanceMode.LAST = 2;
+ChanceMode.REACH = 3;
+ChanceMode.SUPER_REACH = 4;
+
+function BingoSimulationResult() {
+    this.times = 0;
+    this.bingo = 0;
+    this.superBingo = 0;
+    this.rank1 = 0;
+    this.rank2 = 0;
+    this.rank3 = 0;
+    this.rank4 = 0;
+    this.bet = 0;
+    this.prize = 0;
+    this.total = 0;
+    this.totalMin = Number.MAX_VALUE;
+    this.totalMax = Number.MIN_VALUE;
+}
+
+function BingoSimulator() {
+    this.times = 1000;
+    this.numPlayer = 5;
+    this.bet = 100;
+    this.maxBet = 1000;
+    this.waitSuperBingo = false;
+    this.chanceMode = ChanceMode.REACH;
+    this.chanceModeOthers = ChanceMode.REACH;
+    this.reportAction = function (sim) { }
+    this.finishAction = function (sim) { }
+    this.loopSlice = 127;
+    this.result = new BingoSimulationResult();
+}
+
+BingoSimulator.prototype.run = function () {
+    timerLoop(this.mainLoop, this, this.loopSlice);
+}
+
+BingoSimulator.prototype.mainLoop = function () {
+    var room = new Room();
+    room.numPlayer = this.numPlayer;
+    room.maxBet = this.maxBet;
+    room.bet = this.bet;
+    room.chanceMode = this.chanceMode;
+    room.chanceModeOthers = this.chanceModeOthers;
+    room.play();
+
+    this.updateResultCount(room);
+
+    if (this.isFinished()) {
+        this.reportAction(this);
+        this.finishAction(this);
+        return false;
+    }
+
+    if (this.result.times % this.loopSlice == 0)
+        this.reportAction(this);
+
+    return true;
+}
+
+BingoSimulator.prototype.updateResultCount = function (room) {
+    var result = this.result;
+
+    var player = room.getPlayer();
+    if (player.card.superBingo > 0)
+        result.superBingo++;
+    if (player.card.bingo > 0)
+        result.bingo++;
+
+    switch (player.rank) {
+        case 1: result.rank1++; break;
+        case 2: result.rank2++; break;
+        case 3: result.rank3++; break;
+        case 4: result.rank4++; break;
+    }
+
+    result.times++;
+    result.bet += player.bet;
+    result.prize += room.payment(player);
+    result.total += room.payment(player) - player.bet;
+    result.totalMin = Math.min(result.total, result.totalMin);
+    result.totalMax = Math.max(result.total, result.totalMax);
+}
+
+BingoSimulator.prototype.isFinished = function () {
+    if (this.waitSuperBingo)
+        return this.result.superBingo > 0;
+    else
+        return this.result.times >= this.times;
+}
+
+function timerLoop(mainLoop, thisObject, slice, interval) {
+    if (!slice) slice = 127;
+    if (!interval) interval = 0;
+
+    var beginLoop = function (thisObject) {
+        for (var i = 0; i < slice; i++) {
+            if (!mainLoop.call(thisObject))
+                return;
+        }
+        setTimeout(arguments.callee, interval, thisObject);
+    }
+    beginLoop(thisObject);
 }
 
 var Random = {};
