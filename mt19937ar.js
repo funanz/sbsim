@@ -62,7 +62,7 @@ MT19937ar.prototype.mul32 = function (a, b) {
     var al = a & 0xffff;
     var bh = b >>> 16;
     var bl = b & 0xffff;
-    var h = ((al * bl) >> 16) + ((ah * bl) & 0xffff) + ((al * bh) & 0xffff);
+    var h = ((al * bl) >>> 16) + ((ah * bl) & 0xffff) + ((al * bh) & 0xffff);
     var l = (al * bl) & 0xffff;
     return (h << 16) + l;
 }
