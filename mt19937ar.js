@@ -199,8 +199,8 @@ MT19937ar.prototype.genrand_res53 = function () {
 
 MT19937ar.prototype.main = function () {
     var i;
-    var init=[0x123, 0x234, 0x345, 0x456], length=4;
-    this.init_by_array(init, length);
+    var init=[0x123, 0x234, 0x345, 0x456];
+    this.init_by_array(init);
     process.stdout.write("1000 outputs of genrand_int32()\n");
     for (i=0; i<1000; i++) {
         process.stdout.write(this.i10(this.genrand_int32()) + " ");
