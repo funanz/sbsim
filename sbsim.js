@@ -302,7 +302,7 @@ Random.next = function (min, max) {
 }
 
 Random.next1 = function (max) {
-    return Random.mt.genrand_int32() % max;
+    return Math.floor(Random.mt.genrand_real2() * max);
 }
 
 Random.next2 = function (min, max) {
