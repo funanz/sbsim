@@ -69,9 +69,9 @@ MT19937ar.prototype.mul32 = function (a, b) {
 
 /* initializes mt[N] with a seed */
 MT19937ar.prototype.init_genrand = function (s) {
+    var N = this.N;
     var mt = this.mt;
     var mti = this.mti;
-    var N = this.N;
 
     mt[0]= s & 0xffffffff;
     for (mti=1; mti<N; mti++) {
@@ -93,10 +93,9 @@ MT19937ar.prototype.init_genrand = function (s) {
 /* key_length is its length */
 /* slight change for C++, 2004/2/26 */
 MT19937ar.prototype.init_by_array = function (init_key) {
+    var N = this.N;
     var mt = this.mt;
     var key_length = init_key.length;
-    var N = this.N;
-
     var i, j, k;
     this.init_genrand(19650218);
     i=1; j=0;
@@ -122,18 +121,17 @@ MT19937ar.prototype.init_by_array = function (init_key) {
 
 /* generates a random number on [0,0xffffffff]-interval */
 MT19937ar.prototype.genrand_int32 = function () {
+    var N = this.N;
     var mt = this.mt;
     var mti = this.mti;
-    var N = this.N;
-    var M = this.M;
-    var UPPER_MASK = this.UPPER_MASK;
-    var LOWER_MASK = this.LOWER_MASK;
-
     var y;
-    var mag01=this.mag01;
-    /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
     if (mti >= N) { /* generate N words at one time */
+        var M = this.M;
+        var UPPER_MASK = this.UPPER_MASK;
+        var LOWER_MASK = this.LOWER_MASK;
+        var mag01 = this.mag01;
+        /* mag01[x] = x * MATRIX_A  for x=0,1 */
         var kk;
 
         if (mti == N+1)   /* if init_genrand() has not been called, */
