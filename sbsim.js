@@ -548,11 +548,11 @@ Card.prototype.openChance = function () {
 
     if (available.length > 0) {
         var r = Random.next(available.length);
-        var i = available[r];
-        this.cells[i].isOpen = true;
-        this.cells[i].isDiamond = true;
+        var index = available[r];
+        this.cells[index].isOpen = true;
+        this.cells[index].isDiamond = true;
 
-        return this.updateCellCount(i);
+        return this.updateCellCount(index);
     }
 
     return null;
@@ -595,9 +595,9 @@ Card.prototype.verifyCellCount = function () {
 
 Card.prototype.toString = function () {
     var result = "";
-    for (i = 0; i < this.row; i++) {
+    for (var i = 0; i < this.row; i++) {
         var s = "|";
-        for (j = 0; j < this.column; j++) {
+        for (var j = 0; j < this.column; j++) {
             var cell = this.cells[i * this.row + j];
             s += cell.isOpen ? "o" : " ";
             s += cell.isDiamond ? "*" : " ";
@@ -735,7 +735,7 @@ Room.prototype.playRound = function (ball, rank, round) {
             }
 
             if (player.incrementChance(round) == 3) {
-                var open = player.card.openChance();
+                open = player.card.openChance();
                 if (open) {
                     if (open.superBingo > 0) continue;
                     if (open.bingo > 0) {
