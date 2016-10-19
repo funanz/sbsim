@@ -119,18 +119,27 @@ function displayResultMessage(sim) {
 
 function displayLink(id, text, url) {
     var elem = document.getElementById(id);
-    elem.innerHTML = toSafeText(text);
     elem.href = url;
+    displayString(id, text);
 }
 
 function displayString(id, s) {
     var elem = document.getElementById(id);
-    elem.innerHTML = toSafeText(s);
+    while (elem.firstChild)
+        elem.removeChild(elem.firstChild);
+
+    var lines = s.split("\n");
+    if (lines.length > 0) {
+        elem.appendChild(document.createTextNode(lines[0]));
+        for (var i = 1; i < lines.length; i++) {
+            elem.appendChild(document.createElement("br"));
+            elem.appendChild(document.createTextNode(lines[i]));
+        }
+    }
 }
 
 function displayValue(id, value) {
-    var elem = document.getElementById(id);
-    elem.innerHTML = value.toLocaleString();
+    displayString(id, value.toLocaleString());
 }
 
 function displayValuePer(id, num, numAll) {
@@ -153,22 +162,6 @@ function getInputValue(id) {
     var input = document.getElementById(id);
     var n = parseInt(input.value);
     return isNaN(n) ? 0 : n;
-}
-
-function toSafeText(s) {
-    var escapeEntity = s.replace(/[&<>"]/g, function (m) {
-        return escapeEntityMap[m];
-    });
-    var convertCrLf = escapeEntity.replace(/\r?\n/g, "<br/>");
-
-    return convertCrLf;
-}
-
-var escapeEntityMap = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
 }
 
 var ChanceMode = {};
